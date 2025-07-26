@@ -1,0 +1,35 @@
+# This file contains the configuration for the OpenManus application.
+# It is written in TOML format.
+
+# Agent configuration
+[agent]
+agent_type = "manus"
+
+# Workspace configuration
+[workspace]
+directory = "workspace"
+max_file_read_chars = 20000
+
+# LLM configuration
+[llm]
+
+# Default LLM settings - required by the application's configuration model.
+# We will point it to use the 'google' configuration.
+[llm.default]
+llm_provider = "google"
+model = "gemini-1.5-pro-latest"
+api_type = "google"
+api_key = "API-KEY" # Replace with your key
+base_url = "" # Provide an empty string to pass validation
+max_tokens = 4096
+temperature = 0.2
+
+# Configuration for the Google provider
+[llm.google]
+llm_provider = "google"
+model = "gemini-1.5-pro-latest"
+api_type = "google"
+api_key = "API-KEY" # Replace with your key
+base_url = "" # Provide an empty string to pass validation
+max_tokens = 4096
+temperature = 0.2
