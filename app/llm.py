@@ -211,7 +211,11 @@ class LLM:
                     del message["base64_image"]
                 elif not supports_images and message.get("base64_image"):
                     del message["base64_image"]
-                if "content" in message or "tool_calls" in message: formatted_messages.append(message)
+                
+                # ** THE FIX IS HERE **
+                # Ensure message has content before adding it.
+                if message.get("content") or message.get("tool_calls"):
+                    formatted_messages.append(message)
             else: raise TypeError(f"Unsupported message type: {type(message)}")
         for msg in formatted_messages:
             if msg["role"] not in ROLE_VALUES: raise ValueError(f"Invalid role: {msg['role']}")
@@ -220,15 +224,23 @@ class LLM:
     @retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(6), retry=retry_if_exception_type((OpenAIError, Exception, ValueError)))
     async def ask_tool(self, messages: List[Union[dict, Message]], system_msgs: Optional[List[Union[dict, Message]]] = None, timeout: int = 300, tools: Optional[List[dict]] = None, tool_choice: TOOL_CHOICE_TYPE = ToolChoice.AUTO, temperature: Optional[float] = None, **kwargs) -> ChatCompletionMessage | None:
         try:
+            if not messages and not system_msgs:
+                logger.warning("ask_tool was called with no messages. Aborting.")
+                return None
+
             if tool_choice not in TOOL_CHOICE_VALUES: raise ValueError(f"Invalid tool_choice: {tool_choice}")
             supports_images = self.model in MULTIMODAL_MODELS
             
             all_msgs = (system_msgs or []) + messages
+            
             formatted_messages = self.format_messages(all_msgs, supports_images)
+
+            if not formatted_messages:
+                logger.warning("Formatted messages list is empty after processing. Aborting API call.")
+                return None
 
             input_tokens = self.count_message_tokens(formatted_messages)
             
-            # Clean tools specifically for Gemini
             current_tools = tools
             if self.api_type == "google" and tools:
                 current_tools = self._clean_tools_for_gemini(tools)
